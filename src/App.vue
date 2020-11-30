@@ -80,30 +80,37 @@ export default {
       sectionSymbol: 0,
       contentSymbol: 0,
       myworker: {},
-      loading: true,
+      loading: false,
       timer: null,
     };
   },
   mounted() {},
   methods: {
+    //优化前
     onInput() {
-      if (this.timer) {
-        clearTimeout(this.timer);
-        this.timer = setTimeout(() => {
-          clearTimeout(this.timer);
-          this.timer = null;
-        }, 2000);
-        return;
-      }
       this.loading = true;
-      const option = [this.text, this.sectionSymbol];
-      this.workerInput = this.$worker
-        .run(sectionSplice, option)
-        .then((res) => {
-          this.handleCards(res);
-        })
-        .catch((e) => console.log(e));
+      const temp = sectionSplice(this.text, this.sectionSymbol);
+      this.cardList = contentSplice(temp, this.contentSymbol).data;
+      this.loading = false;
     },
+    // onInput() {
+    //   if (this.timer) {
+    //     clearTimeout(this.timer);
+    //     this.timer = setTimeout(() => {
+    //       clearTimeout(this.timer);
+    //       this.timer = null;
+    //     }, 2000);
+    //     return;
+    //   }
+    //   this.loading = true;
+    //   const option = [this.text, this.sectionSymbol];
+    //   this.workerInput = this.$worker
+    //     .run(sectionSplice, option)
+    //     .then((res) => {
+    //       this.handleCards(res);
+    //     })
+    //     .catch((e) => console.log(e));
+    // },
     handleCards(data) {
       let cardList = [];
       this.operationId++;
