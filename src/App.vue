@@ -7,48 +7,8 @@
           placeholder="add multiple lines"
           @input="onInput"
         ></textarea>
-        <div class="split-Symbol">
-          <div class="split-section">
-            <div>段落</div>
-            <input
-              type="radio"
-              id="section0"
-              value="0"
-              v-model="sectionSymbol"
-            />
-            <label for="section0">新一行</label>
-            <br />
-            <input
-              type="radio"
-              id="section1"
-              value="1"
-              v-model="sectionSymbol"
-            />
-            <label for="section1">分号</label>
-            <br />
-          </div>
-          <div class="split-card">
-            <div>内容</div>
-            <input
-              type="radio"
-              id="content0"
-              value="0"
-              v-model="contentSymbol"
-            />
-            <label for="content0">逗号</label>
-            <br />
-            <input
-              type="radio"
-              id="content1"
-              value="1"
-              v-model="contentSymbol"
-            />
-            <label for="content1">Tab</label>
-            <br />
-          </div>
-        </div>
         <div>
-          <button>提交</button>
+          以换行分割对象，以'，'分割属性
         </div>
       </div>
     </div>
@@ -68,6 +28,7 @@
 
 <script>
 import Cards from '@/utils/cards';
+import WorkerQueue from '@/utils/workerQueue';
 import { sectionSplice, contentSplice } from '@/utils/handleInput';
 export default {
   name: 'App',
@@ -77,22 +38,24 @@ export default {
       cardList: [],
       text: '',
       operationId: 0,
-      sectionSymbol: 0,
-      contentSymbol: 0,
       myworker: {},
+      workerQueue: {},
       loading: false,
       timer: null,
     };
   },
-  mounted() {},
+  mounted() {
+    this.workerQueue = new WorkerQueue();
+  },
   methods: {
     //优化前
     onInput() {
       this.loading = true;
-      const temp = sectionSplice(this.text, this.sectionSymbol);
-      this.cardList = contentSplice(temp, this.contentSymbol).data;
+      const temp = sectionSplice(this.text);
+      this.cardList = contentSplice(temp).data;
       this.loading = false;
     },
+    // vue-worker未加线程数量控制版本
     // onInput() {
     //   if (this.timer) {
     //     clearTimeout(this.timer);
@@ -111,17 +74,72 @@ export default {
     //     })
     //     .catch((e) => console.log(e));
     // },
+    // handleCards(data) {
+    //   let cardList = [];
+    //   this.operationId++;
+    //   if (data.length <= 100) {
+    //     this.workerCards = this.$worker
+    //       .run(contentSplice, [data, this.contentSymbol])
+    //       .then((res) => {
+    //         this.cardList = res.data;
+    //         this.loading = false;
+    //       })
+    //       .catch((e) => console.log(e));
+    //   } else {
+    //     let sliceData = data;
+    //     if (data.length > 1000) {
+    //       sliceData = data.slice(0, 1000);
+    //     }
+    //     let dataArr = this.Sectioning(sliceData, 50);
+    //     let length = dataArr.length;
+    //     const operationId = this.operationId;
+    //     const cards = new Cards(operationId, length);
+    //     for (let i = 0; i < length; i++) {
+    //       this.workerCards = this.$worker
+    //         .run(contentSplice, [dataArr[i], this.contentSymbol, operationId])
+    //         .then((res) => {
+    //           cardList = cards.addCards(operationId, res.data);
+    //           if (cardList.length > 0) {
+    //             this.loading = false;
+    //             this.cardList = cardList;
+    //           }
+    //         })
+    //         .catch((e) => console.log(e));
+    //     }
+    //   }
+    // },
+    // vue-worker线程数量控制版本
+    // onInput() {
+    //   if (this.timer) {
+    //     clearTimeout(this.timer);
+    //     this.timer = setTimeout(() => {
+    //       clearTimeout(this.timer);
+    //       this.timer = null;
+    //     }, 2000);
+    //     return;
+    //   }
+    //   this.loading = true;
+    //   this.workerQueue.push(
+    //     sectionSplice,
+    //     (res) => {
+    //       this.handleCards(res);
+    //     },
+    //     this.text
+    //   );
+    // },
     handleCards(data) {
       let cardList = [];
       this.operationId++;
       if (data.length <= 100) {
-        this.workerCards = this.$worker
-          .run(contentSplice, [data, this.contentSymbol])
-          .then((res) => {
+        this.workerQueue.push(
+          contentSplice,
+          (res) => {
             this.cardList = res.data;
             this.loading = false;
-          })
-          .catch((e) => console.log(e));
+          },
+          data,
+          this.contentSymbol
+        );
       } else {
         let sliceData = data;
         if (data.length > 1000) {
@@ -132,16 +150,19 @@ export default {
         const operationId = this.operationId;
         const cards = new Cards(operationId, length);
         for (let i = 0; i < length; i++) {
-          this.workerCards = this.$worker
-            .run(contentSplice, [dataArr[i], this.contentSymbol, operationId])
-            .then((res) => {
+          this.workerQueue.push(
+            contentSplice,
+            (res) => {
               cardList = cards.addCards(operationId, res.data);
               if (cardList.length > 0) {
                 this.loading = false;
                 this.cardList = cardList;
               }
-            })
-            .catch((e) => console.log(e));
+            },
+            dataArr[i],
+            this.contentSymbol,
+            operationId
+          );
         }
       }
     },
@@ -180,13 +201,6 @@ button {
   width: 160px;
   height: 40px;
   font-size: 22px;
-}
-.split-Symbol {
-  display: flex;
-}
-.split-section,
-.split-card {
-  width: 50%;
 }
 .output {
   height: calc(100vh - 20px);

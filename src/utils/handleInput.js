@@ -1,10 +1,10 @@
-export function sectionSplice(val, radio) {
-  const breakSymbol = radio == 0 ? '\n' : /;|；/;
+export function sectionSplice(val) {
+  const breakSymbol = '\n';
   let cards = val.split(breakSymbol);
   return cards.filter((item) => item != '');
 }
-export function contentSplice(dataArr, radio, cardId) {
-  const splitSymbol = radio == 0 ? /,|，/ : '\t';
+export function contentSplice(dataArr, cardId) {
+  const splitSymbol = '，';
   const length = dataArr.length;
   const result = {
     data: [],
