@@ -27,7 +27,7 @@
 </template>
 
 <script>
-import Cards from '@/utils/cards';
+// import Cards from '@/utils/cards';
 import WorkerQueue from '@/utils/workerQueue';
 import { sectionSplice, contentSplice } from '@/utils/handleInput';
 export default {
@@ -57,16 +57,8 @@ export default {
     },
     // vue-worker未加线程数量控制版本
     // onInput() {
-    //   if (this.timer) {
-    //     clearTimeout(this.timer);
-    //     this.timer = setTimeout(() => {
-    //       clearTimeout(this.timer);
-    //       this.timer = null;
-    //     }, 2000);
-    //     return;
-    //   }
     //   this.loading = true;
-    //   const option = [this.text, this.sectionSymbol];
+    //   const option = [this.text];
     //   this.workerInput = this.$worker
     //     .run(sectionSplice, option)
     //     .then((res) => {
@@ -74,12 +66,21 @@ export default {
     //     })
     //     .catch((e) => console.log(e));
     // },
+    handleCards(data) {
+      this.workerCards = this.$worker
+        .run(contentSplice, [data])
+        .then((res) => {
+          this.cardList = res.data;
+          this.loading = false;
+        })
+        .catch((e) => console.log(e));
+    },
     // handleCards(data) {
     //   let cardList = [];
     //   this.operationId++;
     //   if (data.length <= 100) {
     //     this.workerCards = this.$worker
-    //       .run(contentSplice, [data, this.contentSymbol])
+    //       .run(contentSplice, [data])
     //       .then((res) => {
     //         this.cardList = res.data;
     //         this.loading = false;
@@ -96,7 +97,7 @@ export default {
     //     const cards = new Cards(operationId, length);
     //     for (let i = 0; i < length; i++) {
     //       this.workerCards = this.$worker
-    //         .run(contentSplice, [dataArr[i], this.contentSymbol, operationId])
+    //         .run(contentSplice, [dataArr[i], operationId])
     //         .then((res) => {
     //           cardList = cards.addCards(operationId, res.data);
     //           if (cardList.length > 0) {
@@ -127,45 +128,43 @@ export default {
     //     this.text
     //   );
     // },
-    handleCards(data) {
-      let cardList = [];
-      this.operationId++;
-      if (data.length <= 100) {
-        this.workerQueue.push(
-          contentSplice,
-          (res) => {
-            this.cardList = res.data;
-            this.loading = false;
-          },
-          data,
-          this.contentSymbol
-        );
-      } else {
-        let sliceData = data;
-        if (data.length > 1000) {
-          sliceData = data.slice(0, 1000);
-        }
-        let dataArr = this.Sectioning(sliceData, 50);
-        let length = dataArr.length;
-        const operationId = this.operationId;
-        const cards = new Cards(operationId, length);
-        for (let i = 0; i < length; i++) {
-          this.workerQueue.push(
-            contentSplice,
-            (res) => {
-              cardList = cards.addCards(operationId, res.data);
-              if (cardList.length > 0) {
-                this.loading = false;
-                this.cardList = cardList;
-              }
-            },
-            dataArr[i],
-            this.contentSymbol,
-            operationId
-          );
-        }
-      }
-    },
+    // handleCards(data) {
+    //   let cardList = [];
+    //   this.operationId++;
+    //   if (data.length <= 100) {
+    //     this.workerQueue.push(
+    //       contentSplice,
+    //       (res) => {
+    //         this.cardList = res.data;
+    //         this.loading = false;
+    //       },
+    //       data,
+    //     );
+    //   } else {
+    //     let sliceData = data;
+    //     if (data.length > 1000) {
+    //       sliceData = data.slice(0, 1000);
+    //     }
+    //     let dataArr = this.Sectioning(sliceData, 50);
+    //     let length = dataArr.length;
+    //     const operationId = this.operationId;
+    //     const cards = new Cards(operationId, length);
+    //     for (let i = 0; i < length; i++) {
+    //       this.workerQueue.push(
+    //         contentSplice,
+    //         (res) => {
+    //           cardList = cards.addCards(operationId, res.data);
+    //           if (cardList.length > 0) {
+    //             this.loading = false;
+    //             this.cardList = cardList;
+    //           }
+    //         },
+    //         dataArr[i],
+    //         operationId
+    //       );
+    //     }
+    //   }
+    // },
     Sectioning(array, subGroupLength) {
       let index = 0;
       let newArray = [];
